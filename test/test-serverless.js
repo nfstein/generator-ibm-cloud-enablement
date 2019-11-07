@@ -30,7 +30,7 @@ const pipelineDeploySample = fs.readFileSync(path.join(__dirname, 'samples/serve
 const toolchainSample = fs.readFileSync(path.join(__dirname, 'samples/serverless-toolchain.yml'), 'utf-8');
 
 describe('cloud-enablement:serverless', function () {
-	
+
 	describe('cloud-enablement:serverless PYTHON', function () {
 		beforeEach(function () {
 			return helpers.run(path.join(__dirname, '../generators/app'))

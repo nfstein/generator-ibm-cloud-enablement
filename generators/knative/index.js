@@ -1,5 +1,5 @@
 /*
- © Copyright IBM Corp. 2017, 2018
+ © Copyright IBM Corp. 2017, 2019
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -15,17 +15,8 @@
 
 const Generator = require('yeoman-generator');
 let _ = require('lodash');
-const Handlebars = require('../lib/handlebars.js');
+const Handlebars = require('../lib/handlebars');
 const Utils = require('../lib/utils');
-
-// suffix for other deployment
-const DEPLOYMENT_SUFFIX = '.deploy.yaml';
-
-// list of supporting services
-const supportingServicesTypes = ['mongodb'];
-
-// storage directory
-const SERVICE_DIR = 'services/';
 
 const portDefault = {
 	java: {
@@ -73,13 +64,7 @@ module.exports = class extends Generator {
 
 	initializing() {
 		this.fileLocations = {
-			chart: {source : 'Chart.yaml', target : 'chartDir/Chart.yaml', process: true},
-			deployment: {source : 'deployment.yaml', target : 'chartDir/templates/deployment.yaml', process: true},
-			service: {source : 'service.yaml', target : 'chartDir/templates/service.yaml', process: false},
-			hpa: {source : 'hpa.yaml', target : 'chartDir/templates/hpa.yaml', process: true},
-			istio: {source : 'istio.yaml', target : 'chartDir/templates/istio.yaml', process: true},
-			basedeployment: {source : 'basedeployment.yaml', target : 'chartDir/templates/basedeployment.yaml', process: true},
-			values: {source : 'values.yaml', target : 'chartDir/values.yaml', process: true}
+			serviceKnative: {source : 'service-knative.yaml', target : './service-knative.yaml', process: true},
 		};
 	}
 
@@ -91,8 +76,6 @@ module.exports = class extends Generator {
 		} else {
 			this.opts.applicationName = Utils.sanitizeAlphaNum(this.bluemix.name);
 		}
-
-		this.opts.chartName = Utils.sanitizeAlphaNumLowerCase(this.opts.applicationName);
 
 		this.opts.services = typeof(this.opts.services) === 'string' ? JSON.parse(this.opts.services || '[]') : this.opts.services;
 
@@ -135,30 +118,13 @@ module.exports = class extends Generator {
 	}
 
 	writing() {
-		//skip writing files if platforms is specified via options and it doesn't include kube
-		if(this.opts.platforms && !this.opts.platforms.includes('kube')) {
-			return;
-		}
-		// setup output directory name for helm chart
-		// chart/<applicationName>/...
-		let chartDir = 'chart/' + this.opts.chartName;
 
-		if (this.opts.language === 'java' || this.opts.language === 'spring') {
-			this.fileLocations.deployment.source = 'java/deployment.yaml';
-			this.fileLocations.basedeployment.source = 'java/basedeployment.yaml';
-			this.fileLocations.service.source = 'java/service.yaml';
-			this.fileLocations.service.process = true;
-			this.fileLocations.values.source = 'java/values.yaml';
-
-		}
 		// iterate over file names
 		let files = Object.keys(this.fileLocations);
 		files.forEach(file => {
 			let source = this.fileLocations[file].source;
 			let target = this.fileLocations[file].target;
-			if(target.startsWith('chartDir')) {
-				target = chartDir + target.slice('chartDir'.length);
-			}
+
 			if(this.fileLocations[file].process) {
 				this._writeHandlebarsFile(source, target, this.opts);
 			} else {
@@ -168,16 +134,6 @@ module.exports = class extends Generator {
 				);
 			}
 		});
-
-		if(this.opts.services){
-			this.opts.services.forEach(service => {
-				if(_.includes(supportingServicesTypes, service)){
-					this._writeHandlebarsFile(SERVICE_DIR + service + DEPLOYMENT_SUFFIX, chartDir + '/templates/' + service + DEPLOYMENT_SUFFIX, {});
-				} else {
-					console.error(service + ' is not supported');
-				}
-			})
-		}
 	}
 
 	_writeHandlebarsFile(templateFile, destinationFile, data) {
