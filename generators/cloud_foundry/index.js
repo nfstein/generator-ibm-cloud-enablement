@@ -41,12 +41,6 @@ module.exports = class extends Generator {
 		this.manifestConfig = {};
 		this.manifestConfig.env = {};
 		this.toolchainConfig = {};
-		this.pipelineConfig = {
-			buildJobProps: {
-				artifact_dir: "''"
-			},
-			triggersType: 'commit'
-		};
 		this.deployment = {
 			type: 'CF',
 			name: this.bluemix.name,
@@ -60,26 +54,13 @@ module.exports = class extends Generator {
 			this.deployment = Object.assign(this.deployment, this.bluemix.server.cloudDeploymentOptions);
 			this.manifestConfig.instances = this.manifestConfig.instances || '1';
 			this.deployment.type = this.bluemix.server.cloudDeploymentType || 'CF';
-			this.deployment.chartName = Utils.sanitizeAlphaNumLowerCase(this.name || this.bluemix.name);
-			this.deployment.imageName = Utils.sanitizeAlphaNumLowerCase(this.name || this.bluemix.name);
-			this.deployment.scriptsDir = '.bluemix/scripts';
 			this.deployment.hasMongo = this.opts.createType === 'mern' || this.opts.createType === 'mean';
-			if (!this.deployment.kubeClusterNamespace) {
-				this.deployment.kubeClusterNamespace = 'default';
-			}
-			if (!this.deployment.imageRegistryNamespace) {
-				this.deployment.imageRegistryNamespace = 'my_registry_ns';
-			}
-			if (this.bluemix.server.cloudDeploymentOptions && this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType) {
-				this.deployment.kubeDeploymentType = this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType;
-			}
 		} else {
 			this.name = this.bluemix.name;
 			this.manifestConfig.name = this.bluemix.name;
 			this.deployment.type = this.bluemix.cloudDeploymentType || 'CF';
 		}
 
-		this.toolchainConfig.repoType = this.opts.repoType || "clone";
 		switch (this.bluemix.backendPlatform) {
 			case 'NODE':
 				this._configureNode();
@@ -111,18 +92,6 @@ module.exports = class extends Generator {
 			this.cfIgnoreContent = this.cfIgnoreContent.concat(this.manifestConfig.ignorePaths);
 		}
 
-		this.pipelineConfig.postBuildScript = this.fs.read(this.templatePath('post_build.txt'));
-
-		if (this.pipelineConfig.buildJobProps && this.pipelineConfig.buildJobProps.script) {
-			this.pipelineConfig.buildJobProps.script += '\n\n' + this.pipelineConfig.postBuildScript;
-		} else if (!this.pipelineConfig.buildJobProps.script) {
-			Object.assign(this.pipelineConfig.buildJobProps, {
-				build_type: 'shell',
-				script: '|-\n' +
-					'      #!/bin/bash\n' +
-					this.pipelineConfig.postBuildScript
-			});
-		}
 	}
 
 	/***
@@ -206,7 +175,6 @@ module.exports = class extends Generator {
 		this.manifestConfig.command = manifestCommand;
 		this.manifestConfig.env.SWIFT_BUILD_DIR_CACHE = false;
 		this.manifestConfig.memory = this.manifestConfig.memory || '128M';
-		this.pipelineConfig.swift = true;
 		this.cfIgnoreContent = ['.build/*', '.build-ubuntu/*', 'Packages/*'];
 	}
 
@@ -235,18 +203,6 @@ module.exports = class extends Generator {
 		if (this.opts.createType === 'bff/spring') {
 			this.manifestConfig.env.OPENAPI_SPEC = '/swagger/api';
 		}
-
-		if (this.opts.createType && this.opts.createType.startsWith('enable/')) {
-			this.toolchainConfig.repoType = 'link';
-		}
-		let buildCommand = this.opts.buildType === 'gradle' ? '      gradle build' : '      mvn -N io.takari:maven:wrapper -Dmaven=3.5.0\n      ./mvnw install';
-		this.pipelineConfig.javaBuildScriptContent = 'export JAVA_HOME=$JAVA8_HOME\n' + buildCommand;
-		this.pipelineConfig.buildJobProps = {
-			build_type: 'shell',
-			script: '|\n' +
-				'      #!/bin/bash\n' +
-				'      ' + this.pipelineConfig.javaBuildScriptContent
-		};
 	}
 
 	_configureLiberty() {
@@ -274,7 +230,6 @@ module.exports = class extends Generator {
 		if (excludes.length === 2) {
 			this.manifestConfig.env.services_autoconfig_excludes = excludes[0] + ' ' + excludes[1];
 		}
-		this.pipelineConfig.pushCommand = 'cf push "${CF_APP}" -p ' + zipPath + ' --hostname "${CF_HOSTNAME}" -d "${CF_DOMAIN}"';
 	}
 
 	_configureSpring() {
@@ -338,35 +293,6 @@ module.exports = class extends Generator {
 		if (this.cfIgnoreContent) {
 			this.fs.write('.cfignore', this.cfIgnoreContent);
 		}
-
-		// create .bluemix directory for toolchain/devops related files
-		this._writeHandlebarsFile('toolchain_master.yml', '.bluemix/toolchain.yml', {
-			name: this.name,
-			repoType: this.toolchainConfig.repoType,
-			deployment: this.deployment
-		});
-
-		this._writeHandlebarsFile('deploy_master.json', '.bluemix/deploy.json', {
-			deployment: this.deployment
-		});
-
-		this._writeHandlebarsFile('container_build.sh', '.bluemix/scripts/container_build.sh', {
-			deployment: this.deployment
-		});
-
-		let kubeDeployTemplate = 'kube_deploy.sh';
-		if (this.deployment.kubeDeploymentType && Utils.sanitizeAlphaNumLowerCase(this.deployment.kubeDeploymentType) === 'knative') {
-			kubeDeployTemplate = 'kube_deploy_knative.sh';
-		}
-		this._writeHandlebarsFile(kubeDeployTemplate, '.bluemix/scripts/kube_deploy.sh', {
-			deployment: this.deployment
-		});
-
-		this._writeHandlebarsFile('pipeline_master.yml', '.bluemix/pipeline.yml', {
-			config: this.pipelineConfig,
-			deployment: this.deployment,
-			manifest: this.manifestConfig
-		});
 	}
 
 	_writeHandlebarsFile(templateFile, destinationFile, data) {

@@ -61,26 +61,10 @@ module.exports = class extends Generator {
 	}
 
 	initializing() {
-		// Serverless Cloud Functions go through a different system of enablement than other patterns,
-		// see https://github.ibm.com/arf/generator-cloud-functions-usecase/
-		if (_.toLower(this.cloudDeploymentType) === 'functions') {
-
-			let context = this.parentContext || {};
-			//add bluemix options from this.options to existing bluemix options on parent context
-			context[OPTION_BLUEMIX] = Object.assign(context[OPTION_BLUEMIX] || {}, this.options[OPTION_BLUEMIX]);
-
-			// DevOps v2 Shim
-			context.deploymentOrg = this.options.deploymentOrg;
-			context.deploymentSpace = this.options.deploymentSpace;
-			context.deploymentRegion = this.options.deploymentRegion;
-			context.toolchainName = this.options.toolchainName;
-
-			this.composeWith(require.resolve('../functions'), context);		}
-		else {
-			this.composeWith(require.resolve('../dockertools'), this.opts);
-			this.composeWith(require.resolve('../kubernetes'), this.opts);
-			this.composeWith(require.resolve('../deployment'), this.opts);
-		}
+		//this.composeWith(require.resolve('../dockertools'), this.opts);
+		//this.composeWith(require.resolve('../kubernetes'), this.opts);
+		//this.composeWith(require.resolve('../cloud_foundry'), this.opts);
+		this.composeWith(require.resolve('../knative'), this.opts);
 	}
 
 	prompting() {
@@ -118,7 +102,7 @@ module.exports = class extends Generator {
 		prompts.push({
 			type: 'input',
 			name: 'deploymentType',
-			message: 'Deployment Type (Kube, CF, etc.)',
+			message: 'Deployment Type (HELM, CF, KNATIVE)',
 			default: path.basename(process.cwd())
 		});
 
@@ -139,12 +123,6 @@ module.exports = class extends Generator {
 			]
 		});
 
-		prompts.push({
-			type: 'input',
-			name: 'createType',
-			message: 'App Type ie basic, blank, ect.',
-			default: path.basename(process.cwd())
-		});
 
 		return this.prompt(prompts).then(this._processAnswers.bind(this));
 	}
