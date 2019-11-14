@@ -21,7 +21,8 @@ const fs = require('fs');
 const camelCase = require('lodash/camelCase');
 const path = require('path');
 const Handlebars = require('../lib/handlebars');
-const Utils = require('../lib/service-utils');
+const ServiceUtils = require('../lib/service-utils');
+const Utils = require('../lib/utils');
 
 
 const REGEX_HYPHEN = /-/g;
@@ -235,13 +236,13 @@ module.exports = class extends Generator {
 		let localCredentialKeys = [];
 		let springMapping = null
 		if (this.context.language === "java-spring") {
-			springMapping = Utils.getSpringServiceInfo(this.serviceKey)
+			springMapping = ServiceUtils.getSpringServiceInfo(this.serviceKey)
 			if (springMapping) {
-				if (Utils.SPRING_BOOT_SERVICE_NAME in springMapping) {
-					localServiceKey = springMapping[Utils.SPRING_BOOT_SERVICE_NAME]
+				if (ServiceUtils.SPRING_BOOT_SERVICE_NAME in springMapping) {
+					localServiceKey = springMapping[ServiceUtils.SPRING_BOOT_SERVICE_NAME]
 				}
-				if (Utils.SPRING_BOOT_SERVICE_KEY_SEPARATOR in springMapping) {
-					serviceKeySeparator = springMapping[Utils.SPRING_BOOT_SERVICE_KEY_SEPARATOR]
+				if (ServiceUtils.SPRING_BOOT_SERVICE_KEY_SEPARATOR in springMapping) {
+					serviceKeySeparator = springMapping[ServiceUtils.SPRING_BOOT_SERVICE_KEY_SEPARATOR]
 				}
 				console.log("Spring service cred map found for " + this.serviceKey + springMapping ? JSON.stringify(springMapping, null, 3) : springMapping)
 			}
@@ -341,6 +342,29 @@ module.exports = class extends Generator {
 		}
 
 		return templateContent;
+	}
+
+	end(){
+		// Add PATH_LOCALDEV_CONFIG_FILE to .gitignore
+		let gitIgnorePath = this.destinationPath(PATH_GIT_IGNORE);
+		if (this.fs.exists(gitIgnorePath)){
+			this.fs.append(gitIgnorePath, PATH_LOCALDEV_CONFIG_FILE);
+		} else {
+			this.fs.write(gitIgnorePath, PATH_LOCALDEV_CONFIG_FILE);
+		}
+
+		// add services secretKeyRefs to deployment.yaml &&
+		// add services properties and cf bind-service to pipeline.yml &&
+		// add services secretKeyRefs to values.yaml &&
+		// add services form parameters to toolchain.yml &&
+		// add secretKeyRefs to helm commands in kube_deploy.sh &&
+		// add secretKeyRefs to service-knative.yaml
+		return ServiceUtils.addServicesEnvToHelmChartAsync({context: this.context, destinationPath: this.destinationPath()})
+			.then(() => ServiceUtils.addServicesToPipelineYamlAsync({context: this.context, destinationPath: this.destinationPath()}))
+			.then(() => ServiceUtils.addServicesEnvToValuesAsync({context: this.context, destinationPath: this.destinationPath()}))
+			.then(() => ServiceUtils.addServicesEnvToToolchainAsync({context: this.context, destinationPath: this.destinationPath()}))
+			.then(() => ServiceUtils.addServicesKeysToKubeDeployAsync({context: this.context, destinationPath: this.destinationPath()}))
+			.then(() => ServiceUtils.addServicesToServiceKnativeYamlAsync({context: this.context, destinationPath: this.destinationPath(Utils.PATH_KNATIVE_YAML)}));
 	}
 
 };

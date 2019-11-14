@@ -64,7 +64,7 @@ module.exports = class extends Generator {
 
 	initializing() {
 		this.fileLocations = {
-			serviceKnative: {source : 'service-knative.yaml', target : './service-knative.yaml', process: true},
+			serviceKnative: {source : 'service-knative.yaml', target : Utils.PATH_KNATIVE_YAML, process: true},
 		};
 	}
 
