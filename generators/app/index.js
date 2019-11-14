@@ -102,7 +102,7 @@ module.exports = class extends Generator {
 		prompts.push({
 			type: 'input',
 			name: 'deploymentType',
-			message: 'Deployment Type (Kube, CF, etc.)',
+			message: 'Deployment Type (HELM, CF, KNATIVE)',
 			default: path.basename(process.cwd())
 		});
 
@@ -123,12 +123,6 @@ module.exports = class extends Generator {
 			]
 		});
 
-		prompts.push({
-			type: 'input',
-			name: 'createType',
-			message: 'App Type ie basic, blank, ect.',
-			default: path.basename(process.cwd())
-		});
 
 		return this.prompt(prompts).then(this._processAnswers.bind(this));
 	}
