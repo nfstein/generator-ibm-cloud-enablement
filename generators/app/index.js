@@ -22,6 +22,31 @@ const Utils = require('../lib/utils');
 const OPTION_BLUEMIX = 'bluemix';
 const OPTION_STARTER = 'starter';
 
+const portDefault = {
+	java: {
+		http: '9080',
+		https: '9443'
+	},
+	spring: {
+		http: '8080'
+	},
+	node: {
+		http: '3000'
+	},
+	python: {
+		http: '3000'
+	},
+	swift: {
+		http: '8080'
+	},
+	django: {
+		http: '3000'
+	},
+	go: {
+		http: '8080'
+	}
+}
+
 module.exports = class extends Generator {
 	constructor(args, opts) {
 		super(args, opts);
@@ -60,13 +85,7 @@ module.exports = class extends Generator {
 		}
 	}
 
-	initializing() {
-		console.log(this.opts);
-		this.composeWith(require.resolve('../dockertools'), this.opts);
-		this.composeWith(require.resolve('../kubernetes'), this.opts);
-		this.composeWith(require.resolve('../cloud_foundry'), this.opts);
-		this.composeWith(require.resolve('../knative'), this.opts);
-	}
+
 
 	prompting() {
 		if (!this.shouldPrompt) {
@@ -98,23 +117,9 @@ module.exports = class extends Generator {
 
 		prompts.push({
 			type: 'input',
-			name: 'dockerRegistry',
-			message: 'Docker Registry (space for none)',
-			default: 'registry.ng.bluemix.net/' + os.userInfo().username
-		});
-
-		prompts.push({
-			type: 'input',
 			name: 'deploymentType',
-			message: 'Deployment Type (HELM, CF, KNATIVE)',
+			message: 'Deployment Type (KUBE, CF)',
 			default: path.basename(process.cwd())
-		});
-
-		prompts.push({
-			type: 'input',
-			name: 'kubeClusterNamespace',
-			message: 'Kube Cluster Namespace',
-			default: 'default'
 		});
 
 		prompts.push({
@@ -131,28 +136,79 @@ module.exports = class extends Generator {
 		return this.prompt(prompts).then(this._processAnswers.bind(this));
 	}
 
-	configuring() {}
+	configuring() {
+
+		if (this.bluemix.cloudDeploymentType == "HELM") {
+			// work out app name and language
+			this.opts.bluemix.language = _.toLower(this.bluemix.backendPlatform);
+			if(this.opts.bluemix.language === 'java' || this.opts.bluemix.language === 'spring') {
+				this.opts.bluemix.applicationName = this.opts.bluemix.appName || Utils.sanitizeAlphaNum(this.bluemix.name);
+			} else {
+				this.opts.bluemix.applicationName = Utils.sanitizeAlphaNum(this.bluemix.name);
+			}
+
+			this.opts.bluemix.chartName = Utils.sanitizeAlphaNumLowerCase(this.opts.bluemix.applicationName);
+
+			this.opts.bluemix.services = typeof(this.opts.bluemix.services) === 'string' ? JSON.parse(this.opts.bluemix.services || '[]') : this.opts.bluemix.services;
+
+			this.opts.bluemix.servicePorts = {};
+			//use port if passed in
+			if(this.opts.bluemix.port) {
+				this.opts.bluemix.servicePorts.http = this.opts.bluemix.port;
+			} else {
+				this.opts.bluemix.servicePorts.http = portDefault[this.opts.bluemix.language].http;
+				if(portDefault[this.opts.bluemix.language].https) {
+					this.opts.bluemix.servicePorts.https = portDefault[this.opts.bluemix.language].https;
+				}
+			}
+
+			if (this.bluemix.server && this.bluemix.server.cloudDeploymentOptions && this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType) {
+					this.opts.bluemix.kubeDeploymentType = this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType;
+			}
+		}
+	}
+
+	writing() {
+
+		this.composeWith(require.resolve('../dockertools'), this.opts);
+
+		if ( this.bluemix.cloudDeploymentType == "KUBE" ) {
+			if ( this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType == "KNATIVE" ) {
+				this.composeWith(require.resolve('../knative'), this.opts);
+			} else {
+				this.composeWith(require.resolve('../kubernetes'), this.opts);
+			}
+		} else if (this.bluemix.cloudDeploymentType == "CF") {
+			this.composeWith(require.resolve('../cloud_foundry'), this.opts);
+		}
+
+	}
 
 	_processAnswers(answers) {
-		if (!this.bluemix.server) {
+		/*if (!this.bluemix.server) {
 			this.bluemix.server = {};
 			this.bluemix.server.cloudDeploymentOptions = {};
 		}
 		this.bluemix.backendPlatform = answers.language;
 		this.bluemix.name = answers.name;
 		this.bluemix.sanitizedName = Utils.sanitizeAlphaNumDash(answers.name);
-		answers.dockerRegistry = answers.dockerRegistry.trim();
-		this.bluemix.dockerRegistry = answers.dockerRegistry.length > 0 ? answers.dockerRegistry : '';
-		if (this.bluemix.dockerRegistry.length > 0) {
-			this.bluemix.server.cloudDeploymentOptions.imageRegistryNamespace = this.bluemix.dockerRegistry;
-		}
 		this.bluemix.cloudDeploymentType = answers.deploymentType;
 		this.bluemix.server.cloudDeploymentType = answers.deploymentType;
 		this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType = answers.kubeDeploymentType;
-		if (this.bluemix.server && this.bluemix.server.cloudDeploymentOptions) {
-			this.bluemix.server.cloudDeploymentOptions.kubeClusterNamespace = answers.kubeClusterNamespace;
-		}
-		this.opts.createType = answers.createType;
+		*/
+		_.extend(this.bluemix,
+			{
+				server: {
+					cloudDeploymentType: answers.deploymentType,
+					cloudDeploymentOptions:  { kubeDeploymentType: answers.kubeDeploymentType }
+				},
+				cloudDeploymentType: answers.deploymentType,
+				sanitizedName: Utils.sanitizeAlphaNumDash(answers.name),
+				name: answers.name,
+				backendPlatform: answers.language
+			}
+		);
+
 	}
 
 	_sanitizeOption(options, name) {

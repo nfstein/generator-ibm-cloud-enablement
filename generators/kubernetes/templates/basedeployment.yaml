@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   name: "{{tag '  .Chart.Name '}}-basedeployment"
   labels:
-    chart: '{{tag ' .Chart.Name '}}-{{tag ' .Chart.Version \| replace "+" "_" '}}'
+    chart: '{{tag ' .Chart.Name '}}-{{tag ' .Chart.Version | replace "+" "_" '}}'
 spec:
   replicas: {{tag ' .Values.base.replicaCount '}}
   strategy:
@@ -35,5 +35,5 @@ spec:
             memory: "{{tag ' .Values.image.resources.requests.memory '}}"
         env:
           - name: PORT
-            value : "{{tag ' .Values.service.servicePort '}}"
+            value : {{tag ' .Values.service.servicePort '}}
 {{tag ' end '}}

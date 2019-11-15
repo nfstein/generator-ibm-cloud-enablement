@@ -64,60 +64,11 @@ module.exports = class extends Generator {
 
 	initializing() {
 		this.fileLocations = {
-			serviceKnative: {source : 'service-knative.yaml', target : './service-knative.yaml', process: true},
+			serviceKnative: {source : 'service.yaml', target : './service.yaml', process: true},
 		};
 	}
 
-	configuring() {
-		// work out app name and language
-		this.opts.language = _.toLower(this.bluemix.backendPlatform);
-		if(this.opts.language === 'java' || this.opts.language === 'spring') {
-			this.opts.applicationName = this.opts.appName || Utils.sanitizeAlphaNum(this.bluemix.name);
-		} else {
-			this.opts.applicationName = Utils.sanitizeAlphaNum(this.bluemix.name);
-		}
-
-		this.opts.imageName = Utils.sanitizeAlphaNumLowerCase(this.opts.applicationName);
-
-		this.opts.services = typeof(this.opts.services) === 'string' ? JSON.parse(this.opts.services || '[]') : this.opts.services;
-
-		this.opts.servicePorts = {};
-		//use port if passed in
-		if(this.opts.port) {
-			this.opts.servicePorts.http = this.opts.port;
-		} else {
-			this.opts.servicePorts.http = portDefault[this.opts.language].http;
-			if(portDefault[this.opts.language].https) {
-				this.opts.servicePorts.https = portDefault[this.opts.language].https;
-			}
-		}
-
-		this.opts.repositoryURL='';
-		if (this.bluemix.server) {
-			const registryNamespace = this.bluemix.server && this.bluemix.server.cloudDeploymentOptions && this.bluemix.server.cloudDeploymentOptions.imageRegistryNamespace ?
-				this.bluemix.server.cloudDeploymentOptions.imageRegistryNamespace : 'replace-me-namespace';
-			this.opts.registryNamespace = registryNamespace;
-			this.opts.repositoryURL= `icr.io/${registryNamespace}/`;
-			this.opts.kubeClusterNamespace =
-				this.bluemix.server && this.bluemix.server.cloudDeploymentOptions && this.bluemix.server.cloudDeploymentOptions.kubeClusterNamespace ?
-					this.bluemix.server.cloudDeploymentOptions.kubeClusterNamespace : 'default';
-			if (this.bluemix.server.cloudDeploymentOptions && this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType) {
-				this.opts.kubeDeploymentType = this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType;
-			}
-		} else {
-			// TODO(gib): we seem to be hitting this, not sure how.
-
-			// if --bluemix specified and dockerRegistry is not
-			if (this.bluemix.dockerRegistry === undefined) {
-				this.opts.repositoryURL= 'registry.ng.bluemix.net/replace-me-namespace/';
-			}
-			else {
-				// dockerRegistry was passed in --bluemix or was
-				// set via prompt response
-				this.opts.repositoryURL = this.bluemix.dockerRegistry + '/';
-			}
-		}
-	}
+	configuring() {}
 
 	writing() {
 
