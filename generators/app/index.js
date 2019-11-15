@@ -61,9 +61,10 @@ module.exports = class extends Generator {
 	}
 
 	initializing() {
-		//this.composeWith(require.resolve('../dockertools'), this.opts);
-		//this.composeWith(require.resolve('../kubernetes'), this.opts);
-		//this.composeWith(require.resolve('../cloud_foundry'), this.opts);
+		console.log(this.opts);
+		this.composeWith(require.resolve('../dockertools'), this.opts);
+		this.composeWith(require.resolve('../kubernetes'), this.opts);
+		this.composeWith(require.resolve('../cloud_foundry'), this.opts);
 		this.composeWith(require.resolve('../knative'), this.opts);
 	}
 
@@ -72,12 +73,14 @@ module.exports = class extends Generator {
 			return;
 		}
 		const prompts = [];
+
 		prompts.push({
 			type: 'input',
 			name: 'name',
 			message: 'Project name',
 			default: path.basename(process.cwd())
 		});
+
 		prompts.push({
 			type: 'list',
 			name: 'language',
@@ -92,6 +95,7 @@ module.exports = class extends Generator {
 				'GO'
 			]
 		});
+
 		prompts.push({
 			type: 'input',
 			name: 'dockerRegistry',

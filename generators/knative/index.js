@@ -77,6 +77,8 @@ module.exports = class extends Generator {
 			this.opts.applicationName = Utils.sanitizeAlphaNum(this.bluemix.name);
 		}
 
+		this.opts.imageName = Utils.sanitizeAlphaNumLowerCase(this.opts.applicationName);
+
 		this.opts.services = typeof(this.opts.services) === 'string' ? JSON.parse(this.opts.services || '[]') : this.opts.services;
 
 		this.opts.servicePorts = {};
