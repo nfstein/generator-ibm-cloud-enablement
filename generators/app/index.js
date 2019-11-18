@@ -85,8 +85,6 @@ module.exports = class extends Generator {
 		}
 	}
 
-
-
 	prompting() {
 		if (!this.shouldPrompt) {
 			return;
@@ -132,13 +130,13 @@ module.exports = class extends Generator {
 			]
 		});
 
-
 		return this.prompt(prompts).then(this._processAnswers.bind(this));
 	}
 
 	configuring() {
 
-		if (this.bluemix.cloudDeploymentType == "HELM") {
+		// process object for KUBE deployments
+		if (this.bluemix.cloudDeploymentType == "KUBE") {
 			// work out app name and language
 			this.opts.bluemix.language = _.toLower(this.bluemix.backendPlatform);
 			if(this.opts.bluemix.language === 'java' || this.opts.bluemix.language === 'spring') {
@@ -166,6 +164,7 @@ module.exports = class extends Generator {
 					this.opts.bluemix.kubeDeploymentType = this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType;
 			}
 		}
+
 	}
 
 	writing() {
@@ -180,22 +179,13 @@ module.exports = class extends Generator {
 			}
 		} else if (this.bluemix.cloudDeploymentType == "CF") {
 			this.composeWith(require.resolve('../cloud_foundry'), this.opts);
+		} else {
+			throw Error(`bluemix.cloudDeploymentType value ${this.bluemix.cloudDeploymentType} is not recognized, must be "KUBE" or "CF"`);
 		}
 
 	}
 
 	_processAnswers(answers) {
-		/*if (!this.bluemix.server) {
-			this.bluemix.server = {};
-			this.bluemix.server.cloudDeploymentOptions = {};
-		}
-		this.bluemix.backendPlatform = answers.language;
-		this.bluemix.name = answers.name;
-		this.bluemix.sanitizedName = Utils.sanitizeAlphaNumDash(answers.name);
-		this.bluemix.cloudDeploymentType = answers.deploymentType;
-		this.bluemix.server.cloudDeploymentType = answers.deploymentType;
-		this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType = answers.kubeDeploymentType;
-		*/
 		_.extend(this.bluemix,
 			{
 				server: {
@@ -208,7 +198,6 @@ module.exports = class extends Generator {
 				backendPlatform: answers.language
 			}
 		);
-
 	}
 
 	_sanitizeOption(options, name) {

@@ -2,7 +2,7 @@
 apiVersion: serving.knative.dev/v1alpha1
 kind: Service
 metadata:
-  name: {{#toLowerCase applicationName}}{{/toLowerCase}}
+  name: IMAGE_NAME
   namespace: CLUSTER_NAMESPACE
 spec:
   template:

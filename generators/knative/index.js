@@ -18,31 +18,6 @@ let _ = require('lodash');
 const Handlebars = require('../lib/handlebars');
 const Utils = require('../lib/utils');
 
-const portDefault = {
-	java: {
-		http: '9080',
-		https: '9443'
-	},
-	spring: {
-		http: '8080'
-	},
-	node: {
-		http: '3000'
-	},
-	python: {
-		http: '3000'
-	},
-	swift: {
-		http: '8080'
-	},
-	django: {
-		http: '3000'
-	},
-	go: {
-		http: '8080'
-	}
-}
-
 module.exports = class extends Generator {
 
 	constructor(args, opts) {
@@ -61,32 +36,12 @@ module.exports = class extends Generator {
 		}
 	}
 
-
-	initializing() {
-		this.fileLocations = {
-			serviceKnative: {source : 'service.yaml', target : './service.yaml', process: true},
-		};
-	}
+	initializing() {}
 
 	configuring() {}
 
 	writing() {
-
-		// iterate over file names
-		let files = Object.keys(this.fileLocations);
-		files.forEach(file => {
-			let source = this.fileLocations[file].source;
-			let target = this.fileLocations[file].target;
-
-			if(this.fileLocations[file].process) {
-				this._writeHandlebarsFile(source, target, this.opts);
-			} else {
-				this.fs.copy(
-					this.templatePath(source),
-					this.destinationPath(target)
-				);
-			}
-		});
+		this._writeHandlebarsFile('service.yaml', './service.yaml', this.opts);
 	}
 
 	_writeHandlebarsFile(templateFile, destinationFile, data) {

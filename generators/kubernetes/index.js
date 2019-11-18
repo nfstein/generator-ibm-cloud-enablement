@@ -78,8 +78,8 @@ module.exports = class extends Generator {
 			this.fileLocations.service.source = 'java/service.yaml';
 			this.fileLocations.service.process = true;
 			this.fileLocations.values.source = 'java/values.yaml';
-
 		}
+
 		// iterate over file names
 		let files = Object.keys(this.fileLocations);
 		files.forEach(file => {
