@@ -38,8 +38,6 @@ module.exports = class extends Generator {
 
 	initializing() {}
 
-	configuring() {}
-
 	writing() {
 		this._writeHandlebarsFile('service.yaml', './service.yaml', this.opts);
 	}
