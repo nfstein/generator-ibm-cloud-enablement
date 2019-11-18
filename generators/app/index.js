@@ -63,7 +63,7 @@ module.exports = class extends Generator {
 		this.shouldPrompt = this.opts.bluemix ? false : true;
 
 		/*
-		Yeoman copies the opts when doing compose with so create own object reference
+		Yeoman copies the opts when doing compose with to create own object reference
 		that can be updated in prompting
 		*/
 		if (this.opts.bluemix) {
@@ -163,29 +163,34 @@ module.exports = class extends Generator {
 			if (this.bluemix.server && this.bluemix.server.cloudDeploymentOptions && this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType) {
 					this.opts.bluemix.kubeDeploymentType = this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType;
 			}
+
 		}
 
 	}
 
 	writing() {
+		// runs subgenerators
 
 		this.composeWith(require.resolve('../dockertools'), this.opts);
 
 		if ( this.bluemix.cloudDeploymentType == "KUBE" ) {
+
 			if ( this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType == "KNATIVE" ) {
 				this.composeWith(require.resolve('../knative'), this.opts);
 			} else {
 				this.composeWith(require.resolve('../kubernetes'), this.opts);
 			}
+
 		} else if (this.bluemix.cloudDeploymentType == "CF") {
 			this.composeWith(require.resolve('../cloud_foundry'), this.opts);
-		} else {
-			throw Error(`bluemix.cloudDeploymentType value ${this.bluemix.cloudDeploymentType} is not recognized, must be "KUBE" or "CF"`);
 		}
+
+		this.composeWith(require.resolve('../service'), this.opts);
 
 	}
 
 	_processAnswers(answers) {
+		// processes answers from the prompts, not part of production flow
 		_.extend(this.bluemix,
 			{
 				server: {
