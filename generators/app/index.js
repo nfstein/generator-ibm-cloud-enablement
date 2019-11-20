@@ -19,8 +19,8 @@ const path = require('path');
 const os = require('os');
 const Utils = require('../lib/utils');
 
-const OPTION_BLUEMIX = 'bluemix';
-const OPTION_STARTER = 'starter';
+const OPTION_CLOUD_ENABLEMENT_OPTIONS = 'cloudEnablementOptions';
+const OPTION_APPLICATION = 'application';
 
 const portDefault = {
 	java: {
@@ -50,15 +50,19 @@ const portDefault = {
 module.exports = class extends Generator {
 	constructor(args, opts) {
 		super(args, opts);
-
-		this._sanitizeOption(this.options, OPTION_BLUEMIX);
-		this._sanitizeOption(this.options, OPTION_STARTER);
-
 		this.opts = opts;
+
+		this._sanitizeOption(this.options, OPTION_CLOUD_ENABLEMENT_OPTIONS);
+		this._sanitizeOption(this.options, OPTION_APPLICATION);
+
+		console.log(this.opts)
+
 
 		if (this.options.libertyVersion === 'beta') {
 			this.options.libertyBeta = true
 		}
+
+		this.opts.bluemix = this._makeBluemix(this.opts.cloudEnablementOptions, this.opts.application);
 
 		this.shouldPrompt = this.opts.bluemix ? false : true;
 
@@ -83,6 +87,8 @@ module.exports = class extends Generator {
 		} else {
 			this.cloudDeploymentType = this.bluemix.cloudDeploymentType;
 		}
+
+		console.log("end constructor")
 	}
 
 	prompting() {
@@ -134,7 +140,7 @@ module.exports = class extends Generator {
 	}
 
 	configuring() {
-
+		console.log("configuring")
 		// process object for KUBE deployments
 		if (this.bluemix.cloudDeploymentType == "KUBE") {
 			// work out app name and language
@@ -166,9 +172,14 @@ module.exports = class extends Generator {
 
 		}
 
+		console.log("end configuring")
+
+
 	}
 
 	writing() {
+		console.log("writing")
+
 		// runs subgenerators
 
 		this.composeWith(require.resolve('../dockertools'), this.opts);
@@ -176,16 +187,21 @@ module.exports = class extends Generator {
 		if ( this.bluemix.cloudDeploymentType == "KUBE" ) {
 
 			if ( this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType == "KNATIVE" ) {
+				console.log("write knative")
 				this.composeWith(require.resolve('../knative'), this.opts);
 			} else {
+				console.log("write helm")
 				this.composeWith(require.resolve('../kubernetes'), this.opts);
 			}
 
 		} else if (this.bluemix.cloudDeploymentType == "CF") {
+			console.log("write CF")
 			this.composeWith(require.resolve('../cloud_foundry'), this.opts);
 		}
 
-		this.composeWith(require.resolve('../service'), this.opts);
+		//this.composeWith(require.resolve('../service'), this.opts);
+
+		console.log("end writing")
 
 	}
 
@@ -206,13 +222,15 @@ module.exports = class extends Generator {
 	}
 
 	_sanitizeOption(options, name) {
+		//console.log(options);
 		const optionValue = options[name];
 		if (optionValue && _.isFunction(optionValue.indexOf) && optionValue.indexOf('file:') === 0) {
 			const fileName = optionValue.replace('file:', '');
 			const filePath = this.destinationPath(`./${fileName}`);
 			console.info(`Reading ${name} parameter from local file ${filePath}`);
+			//console.log(this.fs.readJSON(filePath))
 			this.options[name] = this.fs.readJSON(filePath);
-			return;
+			return this.options[name];
 		}
 
 		try {
@@ -222,4 +240,27 @@ module.exports = class extends Generator {
 			throw Error(`${name} parameter is expected to be a valid stringified JSON object`);
 		}
 	}
-};
+
+  _makeBluemix(cloud_opts, application){
+		let kubeDeploymentType = (cloud_opts.KUBE) ? cloud_opts.KUBE.cloud_deployment_type : "" ;
+
+		let bluemix = {
+			name: application.name,
+			cloudDeploymentType: Object.keys(cloud_opts)[0],
+			backendPlatform: application.language,
+			services: application.services,
+			server: {
+				"cloudDeploymentOptions": {
+					"kubeDeploymentType": kubeDeploymentType
+				}
+			}
+		};
+
+		if ( cloud_opts.CF ) {
+			_.extend(bluemix.server, cloud_opts.CF)
+		}
+
+		return bluemix
+
+	}
+}
