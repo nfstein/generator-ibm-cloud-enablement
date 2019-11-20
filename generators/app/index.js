@@ -19,8 +19,8 @@ const path = require('path');
 const os = require('os');
 const Utils = require('../lib/utils');
 
-const OPTION_CLOUD_ENABLEMENT_OPTIONS = 'cloudEnablementOptions';
-const OPTION_APPLICATION = 'application';
+const DEPLOY_OPTIONS = 'deployOptions';
+const APPLICATION_OPTIONS = 'application';
 
 const portDefault = {
 	java: {
@@ -52,8 +52,8 @@ module.exports = class extends Generator {
 		super(args, opts);
 		this.opts = opts;
 
-		this._sanitizeOption(this.options, OPTION_CLOUD_ENABLEMENT_OPTIONS);
-		this._sanitizeOption(this.options, OPTION_APPLICATION);
+		this._sanitizeOption(this.options, DEPLOY_OPTIONS);
+		this._sanitizeOption(this.options, APPLICATION_OPTIONS);
 
 		console.log(this.opts)
 
@@ -62,7 +62,7 @@ module.exports = class extends Generator {
 			this.options.libertyBeta = true
 		}
 
-		this.opts.bluemix = this._makeBluemix(this.opts.cloudEnablementOptions, this.opts.application);
+		this.opts.bluemix = this._makeBluemix(this.opts.deployOptions, this.opts.application);
 
 		this.shouldPrompt = this.opts.bluemix ? false : true;
 
@@ -241,12 +241,12 @@ module.exports = class extends Generator {
 		}
 	}
 
-  _makeBluemix(cloud_opts, application){
-		let kubeDeploymentType = (cloud_opts.KUBE) ? cloud_opts.KUBE.cloud_deployment_type : "" ;
+  _makeBluemix(deployOpts, application){
+		let kubeDeploymentType = (deployOpts.KUBE) ? deployOpts.KUBE.cloud_deployment_type : "" ;
 
 		let bluemix = {
 			name: application.name,
-			cloudDeploymentType: Object.keys(cloud_opts)[0],
+			cloudDeploymentType: Object.keys(deployOpts)[0],
 			backendPlatform: application.language,
 			services: application.services,
 			server: {
@@ -256,8 +256,9 @@ module.exports = class extends Generator {
 			}
 		};
 
-		if ( cloud_opts.CF ) {
-			_.extend(bluemix.server, cloud_opts.CF)
+		if ( deployOpts.CF ) {
+			_.extend(bluemix.server, deployOpts.CF)
+			bluemix.server.host = bluemix.server.hostname
 		}
 
 		return bluemix
