@@ -53,7 +53,7 @@ module.exports = class extends Generator {
 
 		this._sanitizeOption(this.options, DEPLOY_OPTIONS);
 		this._sanitizeOption(this.options, APPLICATION_OPTIONS);
-
+		console.log("THIS.OPTS: ")
 		console.log(this.opts);
 
 		if (this.options.libertyVersion === 'beta') {
@@ -120,7 +120,7 @@ module.exports = class extends Generator {
 		prompts.push({
 			type: 'input',
 			name: 'deploymentType',
-			message: 'Deployment Type (KUBE, CF)',
+			message: 'Deployment Type (kube, cloud_foundry)',
 			default: path.basename(process.cwd())
 		});
 
@@ -139,8 +139,8 @@ module.exports = class extends Generator {
 
 	configuring() {
 		console.log("configuring")
-		// process object for KUBE deployments
-		if (this.bluemix.cloudDeploymentType == "KUBE") {
+		// process object for kube deployments
+		if (this.bluemix.cloudDeploymentType == "kube") {
 			// work out app name and language
 			this.opts.bluemix.language = _.toLower(this.bluemix.backendPlatform);
 			if(this.opts.bluemix.language === 'java' || this.opts.bluemix.language === 'spring') {
@@ -178,11 +178,15 @@ module.exports = class extends Generator {
 	writing() {
 		console.log("writing")
 
+		console.log("BLUEMIX: ")
+		console.log(this.opts.bluemix);
+
+
 		// runs subgenerators
 
 		this.composeWith(require.resolve('../dockertools'), this.opts);
 
-		if ( this.bluemix.cloudDeploymentType == "KUBE" ) {
+		if ( this.bluemix.cloudDeploymentType == "kube" ) {
 
 			if ( this.bluemix.server.cloudDeploymentOptions.kubeDeploymentType == "KNATIVE" ) {
 				console.log("write knative")
@@ -192,7 +196,7 @@ module.exports = class extends Generator {
 				this.composeWith(require.resolve('../kubernetes'), this.opts);
 			}
 
-		} else if (this.bluemix.cloudDeploymentType == "CF") {
+		} else if (this.bluemix.cloudDeploymentType == "cloud_foundry") {
 			console.log("write CF")
 			this.composeWith(require.resolve('../cloud_foundry'), this.opts);
 		}
@@ -248,16 +252,17 @@ module.exports = class extends Generator {
 			services: application.services,
 			server: {
 				"cloudDeploymentOptions": {
-					"kubeDeploymentType": (deployOpts.KUBE) ? deployOpts.KUBE.type : ""
+					"kubeDeploymentType": (deployOpts.kube) ? deployOpts.kube.type : ""
 				}
 			}
 		};
 
 
 
-		if ( deployOpts.CF ) {
-			_.extend(bluemix.server, deployOpts.CF)
-			bluemix.server.host = bluemix.server.hostname
+		if ( deployOpts.cloud_foundry ) {
+			_.extend(bluemix.server, deployOpts.cloud_foundry);
+			bluemix.server.host = bluemix.server.hostname;
+			bluemix.cloudDeploymentType = "cloud_foundry";
 		}
 
 		return bluemix

@@ -39,7 +39,7 @@ module.exports = class extends Generator {
 	initializing() {}
 
 	writing() {
-		this._writeHandlebarsFile('service.yaml', './service.yaml', this.opts);
+		this._writeHandlebarsFile('service.yaml', './service.yaml', this.opts.bluemix);
 	}
 
 	_writeHandlebarsFile(templateFile, destinationFile, data) {

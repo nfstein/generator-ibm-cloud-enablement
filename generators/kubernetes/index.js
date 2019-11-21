@@ -89,7 +89,7 @@ module.exports = class extends Generator {
 				target = chartDir + target.slice('chartDir'.length);
 			}
 			if(this.fileLocations[file].process) {
-				this._writeHandlebarsFile(source, target, this.opts);
+				this._writeHandlebarsFile(source, target, this.opts.bluemix);
 			} else {
 				this.fs.copy(
 					this.templatePath(source),
