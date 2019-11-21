@@ -16,10 +16,9 @@
 const Generator = require('yeoman-generator');
 const _ = require('lodash');
 const path = require('path');
-const os = require('os');
 const Utils = require('../lib/utils');
 
-const DEPLOY_OPTIONS = 'deployOptions';
+const DEPLOY_OPTIONS = 'deploy_options';
 const APPLICATION_OPTIONS = 'application';
 
 const portDefault = {
@@ -55,14 +54,13 @@ module.exports = class extends Generator {
 		this._sanitizeOption(this.options, DEPLOY_OPTIONS);
 		this._sanitizeOption(this.options, APPLICATION_OPTIONS);
 
-		console.log(this.opts)
-
+		console.log(this.opts);
 
 		if (this.options.libertyVersion === 'beta') {
 			this.options.libertyBeta = true
 		}
 
-		this.opts.bluemix = this._makeBluemix(this.opts.deployOptions, this.opts.application);
+		this.opts.bluemix = this._makeBluemix(this.opts.deploy_options, this.opts.application);
 
 		this.shouldPrompt = this.opts.bluemix ? false : true;
 
@@ -242,7 +240,6 @@ module.exports = class extends Generator {
 	}
 
   _makeBluemix(deployOpts, application){
-		let kubeDeploymentType = (deployOpts.KUBE) ? deployOpts.KUBE.cloud_deployment_type : "" ;
 
 		let bluemix = {
 			name: application.name,
@@ -251,10 +248,12 @@ module.exports = class extends Generator {
 			services: application.services,
 			server: {
 				"cloudDeploymentOptions": {
-					"kubeDeploymentType": kubeDeploymentType
+					"kubeDeploymentType": (deployOpts.KUBE) ? deployOpts.KUBE.type : ""
 				}
 			}
 		};
+
+
 
 		if ( deployOpts.CF ) {
 			_.extend(bluemix.server, deployOpts.CF)
